@@ -6,7 +6,7 @@ Team Contributors: Hannah Kiesow
 
 ## Introduction
 
-Hi! I am a second year PhD student studying computational neuroscience at RWTH Aachen University, Germany & University of Pennsylvania, USA. I work in the lab of Dr. Danilo Bzdok at McGill University. I have a background in psychology, clinical linguistics and neuroscience. My research interests are in social cognition, and I am really fascinated with social interaction in humans. My lab focuses on big data in neuroscience using data-driven methods. For my current projects, I mainly use Bayesian probabilistic modelling to analyze my data, using the UK BioBank, one of the world's largest biomedical databases. However I am starting to branch into machine learning and am super eager to apply ML methods in neuroimaging. My experience so far has been working mostly with structural MRI images, but I would love to branch out and work with other neuroimaging modalities. 
+Hi! I am a second year PhD student studying computational neuroscience, working in the lab of Dr. Danilo Bzdok at McGill University. My research interests are in social cognition, and I am extremely fascinated with social interaction. My lab focuses on big data in neuroscience using data-driven methods. For my current projects, I mainly use Bayesian probabilistic modelling to analyze my data, using the UK BioBank, one of the world's largest biomedical databases. However I am starting to branch into machine learning and am super eager to apply ML methods in neuroimaging. My experience so far has been working mostly with structural MRI images, but I would love to branch out and work with other neuroimaging modalities. 
 
 <br>
 <br>

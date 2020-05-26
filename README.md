@@ -1,6 +1,6 @@
 # Project for BrainHack School 2020
 
-Team Contributors: Hannah Kiesow 
+Team Contributors: Hannah Kiesow & Elise Douard 
 
 ![Still brainstorming!](brainstorm.png)
 

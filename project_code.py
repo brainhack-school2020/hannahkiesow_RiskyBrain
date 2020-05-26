@@ -2,7 +2,7 @@ import joblib
 import numpy as np
 import pandas as pd 
 from sklearn.preprocessing import StandardScaler
-
+DECONF = True
 
 OUT_DIR = ('/Users/hannah/hannahkiesow_RiskyBrain')
 
@@ -55,5 +55,39 @@ ukbb_sMRI = ukbb_target.loc[:, '25782-2.0':'25892-2.0']  # FSL atlas without Die
 # standardize volumes
 DMN_vols_standardized = StandardScaler().fit_transform(DMN_vols)
 whole_brain_standardized = StandardScaler().fit_transform(np.array(ukbb_sMRI))
+
+
+# deconfound for head size and BMI 
+head_size = StandardScaler().fit_transform(np.nan_to_num(ukbb['25006-2.0'].values[:, None]))  # Volume of grey matter
+body_mass = StandardScaler().fit_transform(np.nan_to_num(ukbb['21001-0.0'].values[:, None]))  # BMI
+conf_mat = np.hstack([
+    np.atleast_2d(head_size), np.atleast_2d(body_mass)])
+
+conf_mat = conf_mat[b_inds_ukbb]
+
+if DECONF == True:
+    from nilearn.signal import clean
+
+    print('Deconfounding BMI & grey-matter space!')
+    SCALED_DMN_vols = clean(DMN_vols_standardized, confounds=conf_mat, detrend=False, standardize=False)
+    SCALED_whole_vols = clean(whole_brain_standardized, confounds=conf_mat, detrend=False, standardize=False)
+
+
+# get atlases
+from nilearn import datasets as ds
+HO_atlas_cort = ds.fetch_atlas_harvard_oxford('cort-maxprob-thr50-1mm', symmetric_split=True)
+HO_atlas_sub = ds.fetch_atlas_harvard_oxford('sub-maxprob-thr50-1mm', symmetric_split=True)
+
+
+
+
+# CCA for feature extraction 
+from sklearn.cross_decomposition import CCA
+
+
+
+
+
+
 
 

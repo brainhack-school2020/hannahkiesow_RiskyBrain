@@ -16,12 +16,17 @@ twitter: @hannahmaykiesow
 
 ## Project Definition 
 
-- I would ideally like to focus on using machine learning techniques. I would definitely like to focus on getting intuitions behind linear and nonlinear ML techniques, and perhaps try out different ensemble methods for prediction
+# Goals: 
+- I would ideally like to focus on using machine learning techniques. I would definitely like to focus on getting intuitions behind different ML techniques, and perhaps try out different ensemble methods for prediction
 
 - I also would like to get to know the nilearn API more in depth, especially working with 
 the different atlases for feature engineering. 
 
 - Lastly, I think visualization is an extremely important skill to invest in. That's why I want to explore other visualization tools using python such as bokeh or ptit prince. 
+
+### Progress overview
+
+- So far, I am learning Canonical Correlation Analysis (CCA) so that I can first create my features using two atlases, the Social Brain Atlas and the Harvard Oxford Atlas
 
 
 ### Tools 
@@ -34,9 +39,7 @@ the different atlases for feature engineering.
 
 ### Data
 
-- data from the PAC 2019 competition (structural gray and white matter)
-- MPI Leipzig Mind Brain Body (https://openneuro.org/datasets/ds000221/versions/00002)
-- Structural brain network of gifted children (https://openneuro.org/datasets/ds002726/versions/1.0.1)
+- UK Biobank data (~10,000 person release)
 
 ###  Deliverables
 
@@ -46,9 +49,10 @@ At the end of this project, we will have:
  - hopefully made a pretty figure :D 
 
 
-### Progress overview
 
 ### Tools I learned during this project
+
+- Canonical Correlation Analysis 
 
 ### Results 
 

@@ -25,8 +25,6 @@ else:
 
 
 # match ukbb subjects to social brain volumes 
-
-
 inds_mri = []
 source_array = T1_subnames_int
 for _, subject in enumerate(ukbb.eid):
@@ -39,6 +37,8 @@ b_inds_ukbb = np.in1d(ukbb.eid, source_array[inds_mri])
 print('%i matched matrices between grey matter data and UKBB found!' % np.sum(
         source_array[inds_mri] == ukbb.eid[b_inds_ukbb]))
 
+
+# keep only the matched subjects
 T1_subnames = T1_subnames[inds_mri]
 T1_subnames_int = T1_subnames_int[inds_mri]
 DMN_vols = DMN_vols[inds_mri]

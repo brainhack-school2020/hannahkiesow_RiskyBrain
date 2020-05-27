@@ -110,6 +110,12 @@ model_cca = CCA(n_components=n_keep, scale=False)
 model_cca.fit(X, Y)
 X_c, Y_c = model_cca.transform(X, Y)
 
+# get correlations of modes 
+from scipy.stats import pearsonr
+correlations = np.array([pearsonr(X_coef, Y_coef)[0] for X_coef, Y_coef in
+    zip(model_cca.x_scores_.T, model_cca.y_scores_.T)])
+
+
 # TO DO: 
 # match up FSL region names
 

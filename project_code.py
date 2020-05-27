@@ -50,6 +50,24 @@ ukbb_target = ukbb.copy()[b_inds_ukbb]
 # extract sMRI data
 ukbb_sMRI = ukbb_target.loc[:, '25782-2.0':'25892-2.0']  # FSL atlas without Diederichsen cerebellar atlas
 
+# check for missing values 
+np.isnan(DMN_vols).sum() # none here
+
+ukbb_sMRI[ukbb_sMRI.isnull().any(axis=1)] # 2 rows with complete missing values
+
+
+# remove missing values 
+ukbb_sMRI = ukbb_sMRI.copy().dropna()
+
+# drop participants missing from ukbb_sMRI also from DMN_vols
+DMN_vols = np.delete(DMN_vols, [4411, 9834], 0)
+
+# sanity checks to make sure missing values are gone
+ukbb_sMRI[ukbb_sMRI.isnull().any(axis=1)]
+np.isnan(DMN_vols).sum() 
+
+assert DMN_vols.shape[0] == ukbb_sMRI.shape[0]
+
 
 # standardize volumes
 from sklearn.preprocessing import StandardScaler
@@ -58,19 +76,19 @@ FSL_vols_standardized = StandardScaler().fit_transform(np.array(ukbb_sMRI))
 
 
 # deconfound for head size and BMI 
-head_size = StandardScaler().fit_transform(np.nan_to_num(ukbb['25006-2.0'].values[:, None]))  # Volume of grey matter
-body_mass = StandardScaler().fit_transform(np.nan_to_num(ukbb['21001-0.0'].values[:, None]))  # BMI
+ukbb_target_no_nans = ukbb_target.drop([4411, 9834])
+
+head_size = StandardScaler().fit_transform(np.nan_to_num(ukbb_target_no_nans['25006-2.0'].values[:, None]))  # Volume of grey matter
+body_mass = StandardScaler().fit_transform(np.nan_to_num(ukbb_target_no_nans['21001-0.0'].values[:, None]))  # BMI
 conf_mat = np.hstack([
     np.atleast_2d(head_size), np.atleast_2d(body_mass)])
-
-conf_mat = conf_mat[b_inds_ukbb]
 
 if DECONF == True:
     from nilearn.signal import clean
 
     print('Deconfounding BMI & grey-matter space!')
     DECONF_DMN_vols = clean(DMN_vols_standardized, confounds=conf_mat, detrend=False, standardize=False)
-    DECONF_FSL_vols = clean(FSL_brain_standardized, confounds=conf_mat, detrend=False, standardize=False)
+    DECONF_FSL_vols = clean(FSL_vols_standardized, confounds=conf_mat, detrend=False, standardize=False)
 
 
 # get atlases
@@ -79,13 +97,18 @@ HO_atlas_cort = ds.fetch_atlas_harvard_oxford('cort-maxprob-thr50-1mm', symmetri
 HO_atlas_sub = ds.fetch_atlas_harvard_oxford('sub-maxprob-thr50-1mm', symmetric_split=True)
 
 
-
-
 # CCA for feature extraction 
 from sklearn.cross_decomposition import CCA
 
-U = DECONF_DMN_vols
-V = DECONF_FSL_vols
+X = DECONF_DMN_vols
+Y = DECONF_FSL_vols
+
+n_keep = 36
+n_permutations = 1000
+
+model_cca = CCA(n_components=n_keep, scale=False)
+model_cca.fit(X, Y)
+
 
 
 

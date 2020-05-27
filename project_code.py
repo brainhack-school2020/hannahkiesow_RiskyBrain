@@ -110,6 +110,8 @@ model_cca = CCA(n_components=n_keep, scale=False)
 model_cca.fit(X, Y)
 X_c, Y_c = model_cca.transform(X, Y)
 
+# TO DO: 
+# match up FSL region names
 
 
 

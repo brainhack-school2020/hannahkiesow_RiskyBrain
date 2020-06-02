@@ -97,6 +97,9 @@ HO_atlas_cort = ds.fetch_atlas_harvard_oxford('cort-maxprob-thr50-1mm', symmetri
 HO_atlas_sub = ds.fetch_atlas_harvard_oxford('sub-maxprob-thr50-1mm', symmetric_split=True)
 
 
+# split the data into training and test set 
+
+
 # CCA for feature extraction 
 from sklearn.cross_decomposition import CCA
 
@@ -225,6 +228,4 @@ final_n = 1
 
 
 
-
-# Finally, we can start ML!
 

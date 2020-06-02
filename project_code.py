@@ -103,9 +103,7 @@ from sklearn.cross_decomposition import CCA
 X = DECONF_DMN_vols
 Y = DECONF_FSL_vols
 
-n_keep = 36
-n_permutations = 1000
-
+n_keep = 5
 model_cca = CCA(n_components=n_keep, scale=False)
 model_cca.fit(X, Y)
 X_c, Y_c = model_cca.transform(X, Y)
@@ -116,9 +114,47 @@ correlations = np.array([pearsonr(X_coef, Y_coef)[0] for X_coef, Y_coef in
     zip(model_cca.x_scores_.T, model_cca.y_scores_.T)])
 
 
-# TO DO: 
-# match up FSL region names
 
+
+n_permutations = 1000
+perm_rs = np.random.RandomState(42)
+perm_Rs = []
+n_except = 0
+for i_iter in range(n_permutations):
+    print(i_iter + 1)
+
+    Y_netnet_perm = np.array([perm_rs.permutation(sub_row) for sub_row in Y])
+
+    # Y_netnet_perm = np.array([perm_rs.permutation(sub_row) for sub_row in cur_Y.T])
+
+    # same procedure, only with permuted subjects on the right side
+    try:
+        perm_cca = CCA(n_components=n_keep, scale=False)
+
+        # perm_inds = np.arange(len(Y_netmet))
+        # perm_rs.shuffle(perm_inds)
+        # perm_cca.fit(X_nodenode, Y_netnet[perm_inds, :])
+        perm_cca.fit(X, Y)
+
+        perm_R = np.array([pearsonr(X_coef, Y_coef)[0] for X_coef, Y_coef in
+            zip(perm_cca.x_scores_.T, perm_cca.y_scores_.T)])
+        perm_Rs.append(perm_R)
+    except:
+        n_except += 1
+        perm_Rs.append(np.zeros(n_keep))
+perm_Rs = np.array(perm_Rs)
+
+pvals = []
+for i_coef in range(n_keep):
+    cur_pval = (1. + np.sum(perm_Rs[1:, 0] > correlations[i_coef])) / n_permutations
+    pvals.append(cur_pval)
+    print (cur_pval)
+pvals = np.array(pvals)
+print('%i CCs are significant at p<0.05' % np.sum(pvals < 0.05))
+print('%i CCs are significant at p<0.01' % np.sum(pvals < 0.01))
+print('%i CCs are significant at p<0.001' % np.sum(pvals < 0.001))
+
+final_n = 1
 
 
 

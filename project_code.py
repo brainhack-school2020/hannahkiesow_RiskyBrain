@@ -22,7 +22,6 @@ else:
     print('Database is already in memory!')
 
 
-
 # match ukbb subjects to social brain volumes 
 inds_mri = []
 source_array = T1_subnames_int
@@ -68,6 +67,8 @@ np.isnan(DMN_vols).sum()
 
 assert DMN_vols.shape[0] == ukbb_sMRI.shape[0]
 
+# split the data into training and test set 
+
 
 # standardize volumes
 from sklearn.preprocessing import StandardScaler
@@ -97,7 +98,7 @@ HO_atlas_cort = ds.fetch_atlas_harvard_oxford('cort-maxprob-thr50-1mm', symmetri
 HO_atlas_sub = ds.fetch_atlas_harvard_oxford('sub-maxprob-thr50-1mm', symmetric_split=True)
 
 
-# split the data into training and test set 
+
 
 
 # CCA for feature extraction 

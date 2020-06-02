@@ -103,7 +103,7 @@ from sklearn.cross_decomposition import CCA
 X = DECONF_DMN_vols
 Y = DECONF_FSL_vols
 
-n_keep = 5
+n_keep = 10
 model_cca = CCA(n_components=n_keep, scale=False)
 model_cca.fit(X, Y)
 X_c, Y_c = model_cca.transform(X, Y)
@@ -113,9 +113,44 @@ from scipy.stats import pearsonr
 correlations = np.array([pearsonr(X_coef, Y_coef)[0] for X_coef, Y_coef in
     zip(model_cca.x_scores_.T, model_cca.y_scores_.T)])
 
+# visualize the components
+
+
+n_keep = 3
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+for n in range(n_keep):
+    plt.figure(figsize=(10, 7))
+
+    grid = np.zeros((len(rois), len(rois)))
+    #triu_mask = np.triu(np.ones_like(X_weights), k=-1).astype(np.bool)
+    
+    triu_mask = np.triu(np.ones_like(grid, dtype=np.bool))
+    
+    X_weights = np.tril(model_cca.x_loadings_[:, n])
+    
+    TH = 0.00
+    X_weights[(X_weights < TH) & (X_weights > -TH)] = 0
+
+    cmap = sns.diverging_palette(220, 10, as_cmap=True)
+    ax = sns.heatmap(data=X_weights, mask=triu_mask, cbar=True, linewidths=.5,
+                     vmin=-0.5, vmax=0.5, center=0,
+                     cmap=cmap, square=True, 
+                     cbar_kws={"shrink": .5})
+    ax.set_yticks(np.arange(len(rois)))
+    ax.set_xticklabels(roi_names, rotation=90)
+    ax.set_yticklabels(roi_names, rotation=0)
+    plt.title('Canonical component %i in Social Brain subnodes' % (n + 1))
+    plt.tight_layout()
 
 
 
+
+
+
+# permutation tests 
 n_permutations = 1000
 perm_rs = np.random.RandomState(42)
 perm_Rs = []

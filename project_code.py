@@ -46,17 +46,19 @@ assert np.sum(T1_subnames_int == ukbb.eid[b_inds_ukbb].values) == len(inds_mri)
 ukbb_target = ukbb.copy()[b_inds_ukbb]
 
 
+DMN_vols = pd.DataFrame(DMN_vols, columns=rois)
 
 
 # extract sMRI data + risk-taking variable (what we will predict)
-ukbb_sMRI = ukbb_target.loc[:, '25782-2.0':'25892-2.0']  # FSL atlas without Diederichsen cerebellar atlas
-ukbb_risk =  ukbb_target['2040-0.0']
+ukbb_sMRI = ukbb_target.copy().loc[:, '25782-2.0':'25892-2.0']  # FSL atlas without Diederichsen cerebellar atlas
+ukbb_risk =  ukbb_target.copy()['2040-0.0']
+
+sMRI = pd.concat([DMN_vols, ukbb_sMRI], axis=1)     
 
 
 # check for missing values 
-np.isnan(DMN_vols).sum() # none here
 
-ukbb_sMRI[ukbb_sMRI.isnull().any(axis=1)] # 2 rows with complete missing values
+sMRI[sMRI.isnull().any(axis=1)] # 2 rows with complete missing values
 
 ukbb_risk[ukbb_risk.isnull()] # 3 missing values 
 
@@ -80,23 +82,17 @@ ukbb_risk = my_impute(ukbb_risk)
 
 
 # remove missing values 
-ukbb_sMRI = ukbb_sMRI.copy().dropna()
+sMRI = sMRI.dropna()
 
 # drop participants missing from ukbb_sMRI also from DMN_vols
-DMN_vols = np.delete(DMN_vols, [4411, 9834], 0)
 ukbb_risk = ukbb_risk.drop(labels=[4411, 9834])   
 
 
 # sanity checks to make sure missing values are gone
-ukbb_sMRI[ukbb_sMRI.isnull().any(axis=1)]
-np.isnan(DMN_vols).sum() 
+sMRI[sMRI.isnull().any(axis=1)]
+ukbb_risk[ukbb_risk.isnull()]
 
-assert DMN_vols.shape[0] == ukbb_sMRI.shape[0] == ukbb_risk.shape[0]
-
-
-# combine two data sources 
-DMN_vols = pd.DataFrame(DMN_vols, columns=rois)
-sMRI = pd.concat([DMN_vols, ukbb_sMRI], axis=1)
+assert sMRI.shape[0] == ukbb_risk.shape[0]
 
 
 # split the data into training and test set 

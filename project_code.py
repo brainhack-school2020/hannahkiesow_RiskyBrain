@@ -149,8 +149,8 @@ HO_atlas_sub = ds.fetch_atlas_harvard_oxford('sub-maxprob-thr50-1mm', symmetric_
 # CCA for feature extraction 
 from sklearn.cross_decomposition import CCA
 
-X = DECONF_DMN_vols
-Y = DECONF_FSL_vols
+X = X_train_DECONF[:, :36]
+Y = X_train_DECONF[:, 36:]
 
 n_keep = 10
 model_cca = CCA(n_components=n_keep, scale=False)
@@ -168,65 +168,42 @@ correlations = np.array([pearsonr(X_coef, Y_coef)[0] for X_coef, Y_coef in
 # visualize the components
 
 # Variate X (Social Brain Regions)
+%matplotlib
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+
 # function that gives you plots for X and Y variates 
-def plot_CCA(n_CCA_to_plot, grid_n, variate_weights, labels):
-    n_keep = n_CCA_to_plot
+
+X_loadings = model_cca.x_loadings_
+Y_loadings = model_cca.y_loadings_
+
+def plot_CCA(n_keep, grid_n, variate_weights, labels):
     for n in range(n_keep):
-    plot = plt.figure(figsize=(10, 7))
+        plot = plt.figure(figsize=(10, 7))
 
-    grid = np.zeros(grid_n , grid_n)
+        grid = np.zeros((grid_n, grid_n))
     
-    triu_mask = np.triu(np.ones_like(grid, dtype=np.bool))
+        triu_mask = np.triu(np.ones_like(grid, dtype=np.bool))
     
-    weights = np.tril(variate_weights)
+        weights = np.tril(variate_weights[:, n])
     
-    TH = 0.00
-    variate_weights[(variate_weights < TH) & (variate_weights > -TH)] = 0
+        TH = 0.00
+        weights[(weights < TH) & (weights > -TH)] = 0
 
-    cmap = sns.diverging_palette(220, 10, as_cmap=True)
-    ax = sns.heatmap(data=variate_weights, mask=triu_mask, cbar=True, linewidths=.5,
-                     vmin=-0.5, vmax=0.5, center=0,
-                     cmap=cmap, square=True, 
-                     cbar_kws={"shrink": .5})
-    ax.set_yticks(np.arange(len(rois)))
-    ax.set_xticklabels(labels, rotation=90)
-    ax.set_yticklabels(labels, rotation=0)
-    plt.title('Canonical component %i in Social Brain subnodes' % (n + 1))
-    plt.tight_layout()
-    return plot # TO DO: debug function!
-
-
+        cmap = sns.diverging_palette(220, 10, as_cmap=True)
+        ax = sns.heatmap(data=weights, mask=triu_mask, cbar=True, linewidths=.5,
+                         vmin=-0.5, vmax=0.5, center=0,
+                         cmap=cmap, square=True, 
+                         cbar_kws={"shrink": .5})
+        ax.set_yticks(np.arange(len(labels)))
+        ax.set_xticklabels(labels, rotation=90)
+        ax.set_yticklabels(labels, rotation=0)
+        plt.title('Canonical component %i in Social Brain subnodes' % (n + 1))
+        plt.tight_layout()
+    return plot 
 
 
-n_keep = 3
-for n in range(n_keep):
-    plt.figure(figsize=(10, 7))
-
-    grid = np.zeros((len(rois), len(rois)))
-    
-    triu_mask = np.triu(np.ones_like(grid, dtype=np.bool))
-    
-    X_weights = np.tril(model_cca.x_loadings_[:, n])
-    
-    TH = 0.00
-    X_weights[(X_weights < TH) & (X_weights > -TH)] = 0
-
-    cmap = sns.diverging_palette(220, 10, as_cmap=True)
-    ax = sns.heatmap(data=X_weights, mask=triu_mask, cbar=True, linewidths=.5,
-                     vmin=-0.5, vmax=0.5, center=0,
-                     cmap=cmap, square=True, 
-                     cbar_kws={"shrink": .5})
-    ax.set_yticks(np.arange(len(rois)))
-    ax.set_xticklabels(roi_names, rotation=90)
-    ax.set_yticklabels(roi_names, rotation=0)
-    plt.title('Canonical component %i in Social Brain subnodes' % (n + 1))
-    plt.tight_layout()
-
-
-# Variate Y (FSL Atlas regions)
 
 
 

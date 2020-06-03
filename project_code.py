@@ -50,8 +50,15 @@ DMN_vols = pd.DataFrame(DMN_vols, columns=rois)
 
 
 # extract sMRI data + risk-taking variable (what we will predict)
+# also deconfounding variables
 ukbb_sMRI = ukbb_target.copy().loc[:, '25782-2.0':'25892-2.0']  # FSL atlas without Diederichsen cerebellar atlas
+
+
+ 
 ukbb_risk =  ukbb_target.copy()['2040-0.0']
+
+confounds = ['25006-2.0', '21001-0.0']
+ukbb_confounds = ukbb_target.copy()[confounds]
 
 sMRI = pd.concat([DMN_vols, ukbb_sMRI], axis=1)     
 
@@ -84,37 +91,41 @@ ukbb_risk = my_impute(ukbb_risk)
 # remove missing values 
 sMRI = sMRI.dropna()
 
-# drop participants missing from ukbb_sMRI also from DMN_vols
+# drop participants missing from ukbb_sMRI also from risk and confound dataframes
 ukbb_risk = ukbb_risk.drop(labels=[4411, 9834])   
-
+ukbb_confounds = ukbb_confounds.drop(labels=[4411, 9834])   
 
 # sanity checks to make sure missing values are gone
 sMRI[sMRI.isnull().any(axis=1)]
 ukbb_risk[ukbb_risk.isnull()]
 
-assert sMRI.shape[0] == ukbb_risk.shape[0]
+assert sMRI.shape[0] == ukbb_risk.shape[0] == ukbb_confounds.shape[0]
 
+
+sMRI_conf = pd.concat([sMRI, ukbb_confounds], axis=1)  
 
 # split the data into training and test set 
 from sklearn.model_selection import train_test_split
 
 X_train, X_test, y_train, y_test = train_test_split(
-    sMRI, ukbb_risk, test_size=0.25, random_state=42)
+    sMRI_conf, ukbb_risk, test_size=0.25, random_state=42)
 
+X_train_sMRI = X_train.iloc[:, :-2]
+X_test_sMRI = X_test.iloc[:, :-2]
 
-
+X_train_conf = X_train.iloc[:, -2:]
+X_test_conf = X_test.iloc[:, -2:]
 
 # standardize volumes
 from sklearn.preprocessing import StandardScaler
-DMN_vols_standardized = StandardScaler().fit_transform(DMN_vols)
-FSL_vols_standardized = StandardScaler().fit_transform(np.array(ukbb_sMRI))
+
+X_train_SS = StandardScaler().fit_transform(X_train_sMRI)
+
 
 
 # deconfound for head size and BMI 
-ukbb_target_no_nans = ukbb_target.drop([4411, 9834])
-
-head_size = StandardScaler().fit_transform(np.nan_to_num(ukbb_target_no_nans['25006-2.0'].values[:, None]))  # Volume of grey matter
-body_mass = StandardScaler().fit_transform(np.nan_to_num(ukbb_target_no_nans['21001-0.0'].values[:, None]))  # BMI
+head_size = StandardScaler().fit_transform(np.nan_to_num(X_train_conf['25006-2.0'].values[:, None]))  # Volume of grey matter
+body_mass = StandardScaler().fit_transform(np.nan_to_num(X_train_conf['21001-0.0'].values[:, None]))  # BMI
 conf_mat = np.hstack([
     np.atleast_2d(head_size), np.atleast_2d(body_mass)])
 
@@ -122,8 +133,8 @@ if DECONF == True:
     from nilearn.signal import clean
 
     print('Deconfounding BMI & grey-matter space!')
-    DECONF_DMN_vols = clean(DMN_vols_standardized, confounds=conf_mat, detrend=False, standardize=False)
-    DECONF_FSL_vols = clean(FSL_vols_standardized, confounds=conf_mat, detrend=False, standardize=False)
+    X_train_DECONF = clean(X_train_SS, confounds=conf_mat, detrend=False, standardize=False)
+
 
 
 # get atlases

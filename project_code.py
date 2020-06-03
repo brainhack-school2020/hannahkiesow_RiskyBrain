@@ -175,7 +175,10 @@ import seaborn as sns
 
 # function that gives you plots for X and Y variates 
 
-X_loadings = model_cca.x_loadings_
+# loadings = a variable's relationship to its own set
+#   weights = variable's relationship to the other set, collinearity not considered
+#   scores = variable's relationship to the other set, collinearity considered (I am guessing)
+X_loadings = model_cca.x_loadings_ # shape: (36, 10)
 Y_loadings = model_cca.y_loadings_
 
 def plot_CCA(n_keep, grid_n, variate_weights, labels):
@@ -204,8 +207,27 @@ def plot_CCA(n_keep, grid_n, variate_weights, labels):
     return plot 
 
 
+sb_columns = ["sb1", "sb2", "sb3", "sb4", "sb5", "sb6", "sb7", "sb8", "sb9", "sb10"]
+FSL_columns = ["fsl1", "fsl2", "fsl3", "fsl4", "fsl5", "fsl6", "fsl7", "fsl8", "fsl9", "fsl10"]
+sb_cca = pd.DataFrame(model_cca.x_scores_, columns=sb_columns)
+fsl_cca = pd.DataFrame(model_cca.y_scores_, columns=FSL_columns)
+
+# finally, concatenate your features!
+X_train_features = pd.concat([sb_cca, fsl_cca], axis=1)
 
 
+# start building models!
+from sklearn.model_selection import KFold
+from sklearn.model_selection import cross_val_score
+from sklearn.linear_model import LogisticRegression
+
+
+# baseline model: Logistic Regression 
+folder = KFold(n_splits=10)
+est = LogisticRegression(random_state=42)
+cv_acc = cross_val_score(est, X_train_features, y_train, cv=folder, verbose=1)
+print('Final score: %2.10f%%' % (np.mean(cv_acc) * 100))
+# Final score: 72.0500649491%
 
 
 

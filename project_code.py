@@ -101,7 +101,7 @@ ukbb_risk[ukbb_risk.isnull()]
 
 assert sMRI.shape[0] == ukbb_risk.shape[0] == ukbb_confounds.shape[0]
 
-
+# put confounds together with vols 
 sMRI_conf = pd.concat([sMRI, ukbb_confounds], axis=1)  
 
 # split the data into training and test set 
@@ -141,8 +141,6 @@ if DECONF == True:
 from nilearn import datasets as ds
 HO_atlas_cort = ds.fetch_atlas_harvard_oxford('cort-maxprob-thr50-1mm', symmetric_split=True)
 HO_atlas_sub = ds.fetch_atlas_harvard_oxford('sub-maxprob-thr50-1mm', symmetric_split=True)
-
-
 
 
 
@@ -230,5 +228,71 @@ print('Final score: %2.10f%%' % (np.mean(cv_acc) * 100))
 # Final score: 72.0500649491%
 
 
+# model 2: grid search Logistic Regression
+from sklearn.model_selection import GridSearchCV
+
+X_train_features_np = np.array(X_train_features)
+y_train_np = np.array(y_train)
+
+
+folder = KFold(n_splits=10, shuffle=True)
+est = LogisticRegression(random_state=42)
+
+outer_acc_train = []
+outer_acc_test = []
+for train, test in folder.split(X_train_features_np): # outer CV fold
+    print("TRAIN:", train[:5], "TEST:", test[:5])
+    X_train_gs, X_test_gs = X_train_features_np[train], X_train_features_np[test]
+    y_train_gs ,y_test_gs = y_train_np[train], y_train_np[test]
+
+    my_grid = {
+            'penalty' : ['l1', 'l2'],
+            'C' : np.linspace(0.1,2,30),
+            'solver' : ['liblinear']} 
+
+    folder_inner = KFold(n_splits=5)
+    gs_est = GridSearchCV(estimator=est, param_grid=my_grid,
+        n_jobs=4, cv=folder_inner, verbose=True)
+    gs_est.fit(X_train_gs, y_train_gs)
+    print(gs_est.best_params_)
+
+    outer_acc_train.append(gs_est.score(X_train_gs, y_train_gs))
+    outer_acc_test.append(gs_est.score(X_test_gs, y_test_gs))
+
+print('Final score: %2.10f%%' % (np.mean(outer_acc_test) * 100))
+# Final score: 72.0630367323%
+
+
+
+# model 3: Random Forest Classifier
+from sklearn.ensemble import RandomForestClassifier
+est = RandomForestClassifier(random_state=42)
+cv_acc = cross_val_score(est, X_train_features, y_train, cv=folder, verbose=1)
+print('Final score: %2.10f%%' % (np.mean(cv_acc) * 100))
+# Final score: 70.0496499964%
+
+
+
+
+
+
+
+
+from sklearn.pipeline import Pipeline
+pipe = Pipeline([('classifier' , RandomForestClassifier())])
+
+param_grid = [
+    {'classifier' : [LogisticRegression()],
+     'classifier__penalty' : ['l1', 'l2'],
+    'classifier__C' : np.logspace(-4, 4, 20),
+    'classifier__solver' : ['liblinear']},
+    {'classifier' : [RandomForestClassifier()],
+    'classifier__n_estimators' : list(range(10,101,10)),
+    'classifier__max_features' : list(range(1,24,6))}
+]
+
+clf = GridSearchCV(pipe, param_grid = param_grid, cv = 5, verbose=True, n_jobs=-1)
+
+best_clf = clf.fit(X_train_features, y_train)
 
 

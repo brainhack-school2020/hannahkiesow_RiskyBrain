@@ -266,33 +266,46 @@ print('Final score: %2.10f%%' % (np.mean(outer_acc_test) * 100))
 
 # model 3: Random Forest Classifier
 from sklearn.ensemble import RandomForestClassifier
+
+folder = KFold(n_splits=10, shuffle=True)
 est = RandomForestClassifier(random_state=42)
-cv_acc = cross_val_score(est, X_train_features, y_train, cv=folder, verbose=1)
+cv_acc = cross_val_score(est, X_train_features_np, y_train_np, cv=folder, verbose=1)
 print('Final score: %2.10f%%' % (np.mean(cv_acc) * 100))
-# Final score: 70.0496499964%
+# Final score: 70.0764595511%
+
+
+# model 4: grid search Random Forest Classifier 
+
+folder = KFold(n_splits=10, shuffle=True)
+est = RandomForestClassifier(random_state=42)
+
+outer_acc_train = []
+outer_acc_test = []
+for train, test in folder.split(X_train_features_np): # outer CV fold
+    print("TRAIN:", train[:5], "TEST:", test[:5])
+    X_train_gs, X_test_gs = X_train_features_np[train], X_train_features_np[test]
+    y_train_gs ,y_test_gs = y_train_np[train], y_train_np[test]
+
+    my_grid = {
+            'n_estimators' : np.linspace(10,500,50, dtype=int),
+            'max_depth' : np.linspace(5,30,6, dtype=int),
+            'min_samples_split' : np.linspace(2,100,50, dtype=int),
+            'min_samples_leaf': np.linspace(1,10,10, dtype=int)    
+            } 
+
+    folder_inner = KFold(n_splits=5)
+    gs_est = GridSearchCV(estimator=est, param_grid=my_grid,
+        n_jobs=4, cv=folder_inner, verbose=True)
+    gs_est.fit(X_train_gs, y_train_gs)
+    print(gs_est.best_params_)
+
+    outer_acc_train.append(gs_est.score(X_train_gs, y_train_gs))
+    outer_acc_test.append(gs_est.score(X_test_gs, y_test_gs))
+
+print('Final score: %2.10f%%' % (np.mean(outer_acc_test) * 100))
+# Final score:
 
 
 
-
-
-
-
-
-from sklearn.pipeline import Pipeline
-pipe = Pipeline([('classifier' , RandomForestClassifier())])
-
-param_grid = [
-    {'classifier' : [LogisticRegression()],
-     'classifier__penalty' : ['l1', 'l2'],
-    'classifier__C' : np.logspace(-4, 4, 20),
-    'classifier__solver' : ['liblinear']},
-    {'classifier' : [RandomForestClassifier()],
-    'classifier__n_estimators' : list(range(10,101,10)),
-    'classifier__max_features' : list(range(1,24,6))}
-]
-
-clf = GridSearchCV(pipe, param_grid = param_grid, cv = 5, verbose=True, n_jobs=-1)
-
-best_clf = clf.fit(X_train_features, y_train)
-
-
+# model 5: gradient boosting classifier 
+from sklearn.ensemble import GradientBoostingClassifier

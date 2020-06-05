@@ -119,13 +119,14 @@ X_test_conf = X_test.iloc[:, -2:]
 # standardize volumes
 from sklearn.preprocessing import StandardScaler
 
-X_train_SS = StandardScaler().fit_transform(X_train_sMRI)
-
+sc = StandardScaler()
+X_train_SS = sc.fit_transform(X_train_sMRI)
+X_test_SS = sc.transform(X_test_sMRI)
 
 
 # deconfound for head size and BMI 
-head_size = StandardScaler().fit_transform(np.nan_to_num(X_train_conf['25006-2.0'].values[:, None]))  # Volume of grey matter
-body_mass = StandardScaler().fit_transform(np.nan_to_num(X_train_conf['21001-0.0'].values[:, None]))  # BMI
+head_size = sc.fit_transform(np.nan_to_num(X_train_conf['25006-2.0'].values[:, None]))  # Volume of grey matter
+body_mass = sc.fit_transform(np.nan_to_num(X_train_conf['21001-0.0'].values[:, None]))  # BMI
 conf_mat = np.hstack([
     np.atleast_2d(head_size), np.atleast_2d(body_mass)])
 
@@ -134,7 +135,7 @@ if DECONF == True:
 
     print('Deconfounding BMI & grey-matter space!')
     X_train_DECONF = clean(X_train_SS, confounds=conf_mat, detrend=False, standardize=False)
-
+    
 
 
 # get atlases
@@ -202,8 +203,10 @@ def plot_CCA(n_keep, grid_n, variate_weights, labels):
         ax.set_yticklabels(labels, rotation=0)
         plt.title('Canonical component %i in Social Brain subnodes' % (n + 1))
         plt.tight_layout()
+        plt.savefig('%s/%s_CCA.png' % (OUT_DIR, (n+1)), dpi=600, transparent=True)
     return plot 
 
+# plot_CCA(3, 36, X_loadings, rois)
 
 sb_columns = ["sb1", "sb2", "sb3", "sb4", "sb5", "sb6", "sb7", "sb8", "sb9", "sb10"]
 FSL_columns = ["fsl1", "fsl2", "fsl3", "fsl4", "fsl5", "fsl6", "fsl7", "fsl8", "fsl9", "fsl10"]
@@ -219,6 +222,9 @@ from sklearn.model_selection import KFold
 from sklearn.model_selection import cross_val_score
 from sklearn.linear_model import LogisticRegression
 
+X_train_features_np = np.array(X_train_features)
+y_train_np = np.array(y_train)
+
 
 # baseline model: Logistic Regression 
 folder = KFold(n_splits=10)
@@ -227,13 +233,35 @@ cv_acc = cross_val_score(est, X_train_features, y_train, cv=folder, verbose=1)
 print('Final score: %2.10f%%' % (np.mean(cv_acc) * 100))
 # Final score: 72.0500649491%
 
+# plot the confusion matrix of results
+from sklearn.model_selection import cross_val_predict
+from sklearn import metrics
+import seaborn as sns
+
+predictions = cross_val_predict(est, X_train_features, y_train, cv=folder)
+cm = metrics.confusion_matrix(y_train, predictions)
+
+
+cmap = sns.diverging_palette(50, 9, n=4, as_cmap=True)
+
+cmap = sns.diverging_palette(9,255, n=4, as_cmap=True)
+
+plot = plt.figure(figsize=(10, 7))
+ax =sns.heatmap(cm, square=True, center=0, 
+                cmap=cmap, linewidths=4.0,
+                linecolor="#FFFFFF", fmt=".3f",
+                annot=True)
+plt.ylabel('Actual label')
+plt.xlabel('Predicted label')
+
+plt.savefig('%s/logreg_heatmap.png' % (OUT_DIR), dpi=400, transparent=True)
+
+
+
+
 
 # model 2: grid search Logistic Regression
 from sklearn.model_selection import GridSearchCV
-
-X_train_features_np = np.array(X_train_features)
-y_train_np = np.array(y_train)
-
 
 folder = KFold(n_splits=10, shuffle=True)
 est = LogisticRegression(random_state=42)
@@ -269,12 +297,15 @@ from sklearn.ensemble import RandomForestClassifier
 
 folder = KFold(n_splits=10, shuffle=True)
 est = RandomForestClassifier(random_state=42)
-cv_acc = cross_val_score(est, X_train_features_np, y_train_np, cv=folder, verbose=1)
+cv_acc = cross_val_score(est, 
+                X_train_features_np, y_train_np, 
+                cv=folder, verbose=1)
+
 print('Final score: %2.10f%%' % (np.mean(cv_acc) * 100))
 # Final score: 70.0764595511%
 
 
-# model 4: grid search Random Forest Classifier 
+# model 4: grid search Random Forest Classifier TOO LONG!!  
 
 folder = KFold(n_splits=10, shuffle=True)
 est = RandomForestClassifier(random_state=42)
@@ -307,5 +338,90 @@ print('Final score: %2.10f%%' % (np.mean(outer_acc_test) * 100))
 
 
 
+# model 4b: grid search Random Forest Classifier 
+from sklearn.ensemble import RandomForestClassifier
+folder = KFold(n_splits=10, shuffle=True)
+est = RandomForestClassifier(random_state=42)
+
+outer_acc_train = []
+outer_acc_test = []
+for train, test in folder.split(X_train_features_np): # outer CV fold
+    print("TRAIN:", train[:5], "TEST:", test[:5])
+    X_train_gs, X_test_gs = X_train_features_np[train], X_train_features_np[test]
+    y_train_gs ,y_test_gs = y_train_np[train], y_train_np[test]
+
+    my_grid = {
+            'n_estimators' : np.linspace(10,500,5, dtype=int),
+            'max_depth' : np.linspace(5,30,6, dtype=int),
+            } 
+
+    folder_inner = KFold(n_splits=5)
+    gs_est = GridSearchCV(estimator=est, param_grid=my_grid,
+        n_jobs=4, cv=folder_inner, verbose=True)
+    gs_est.fit(X_train_gs, y_train_gs)
+    print(gs_est.best_params_)
+
+    outer_acc_train.append(gs_est.score(X_train_gs, y_train_gs))
+    outer_acc_test.append(gs_est.score(X_test_gs, y_test_gs))
+
+print('Final score: %2.10f%%' % (np.mean(outer_acc_test) * 100))
+# Final score: 71.9965721296%
+
+
+
+
+
+
 # model 5: gradient boosting classifier 
 from sklearn.ensemble import GradientBoostingClassifier
+
+
+folder = KFold(n_splits=10, shuffle=True)
+est = GradientBoostingClassifier(random_state=42)
+cv_acc = cross_val_score(est, X_train_features_np, 
+            y_train_np, cv=folder, verbose=1)
+
+print('Final score: %2.10f%%' % (np.mean(cv_acc) * 100))
+# Final score: 71.7408890813%
+
+
+
+# model 6: grid search gradient boosting classifer 
+
+folder = KFold(n_splits=10, shuffle=True)
+est = GradientBoostingClassifier(random_state=42)
+
+outer_acc_train = []
+outer_acc_test = []
+for train, test in folder.split(X_train_features_np): # outer CV fold
+    print("TRAIN:", train[:5], "TEST:", test[:5])
+    X_train_gs, X_test_gs = X_train_features_np[train], X_train_features_np[test]
+    y_train_gs ,y_test_gs = y_train_np[train], y_train_np[test]
+
+    my_grid = {
+            'learning_rate' : [0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1],
+            'n_estimators' : np.linspace(10,500,20, dtype=int),
+            } 
+
+    folder_inner = KFold(n_splits=5)
+    gs_est = GridSearchCV(estimator=est, param_grid=my_grid,
+        n_jobs=2, cv=folder_inner, verbose=True)
+    gs_est.fit(X_train_gs, y_train_gs)
+    print(gs_est.best_params_)
+
+    outer_acc_train.append(gs_est.score(X_train_gs, y_train_gs))
+    outer_acc_test.append(gs_est.score(X_test_gs, y_test_gs))
+
+print('Final score: %2.10f%%' % (np.mean(outer_acc_test) * 100))
+# Final score: 71.9020350725%
+
+
+
+# model 7: XGBoost 
+from xgboost import XGBClassifier
+folder = KFold(n_splits=10, shuffle=True)
+est = XGBClassifier(random_state=42)
+
+
+cv_acc = cross_val_score(est, X_train_features_np, y_train_np, cv=folder, verbose=1)
+print('Final score: %2.10f%%' % (np.mean(cv_acc) * 100))
